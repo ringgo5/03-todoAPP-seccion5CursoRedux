@@ -7,7 +7,8 @@ import { filtrosValidos } from './filtro/filtro.actions';
 })
 export class FiltroPipe implements PipeTransform {
 
-  transform(todos: Todo[], filtro: filtrosValidos): Todo[] {
+  transform(todos: Todo[], filtro: filtrosValidos): Todo[] { //Todo[] es lo que obtenemos
+    console.log(filtro)
 
     switch (filtro) {
 

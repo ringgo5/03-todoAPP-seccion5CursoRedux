@@ -26,3 +26,8 @@ export const toggleAll= createAction(
     '[TODO] marcarTodos todo',
     props<{completado:boolean}>()
 );
+
+export const borrarCompletados= createAction(
+    '[TODO] borrarCompletados todo',
+   
+);

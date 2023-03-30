@@ -130,3 +130,10 @@ Aplicar filtro visualmente:
             En terminal : ng g pipe todos/filtro
             Cuidado, aquí al poner of y pasarle el filtro daba error. Hay que quitar el unknown del pipe y cambiarlo por any
 
+
+Borrar TODOS LOS TODOS COMPLETADOS:
+            Importante,poner la accion en todos, crearla,ponerla en el reducer y ahí mucho cuidado con map y filter
+            Usamos map cuando queremos devolver todo el array pero con alguna funcion o algun cambio, cuando usamos
+            filter, nos devolvera un array con los datos que cumpla la funcion(si quiero señalar todos pongo map)
+            En este caso como quiero devolver un array con los NO COMPLETADOS, pongo un map(todo=> !todo.completado)
+

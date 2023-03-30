@@ -56,7 +56,8 @@ const _todoReducer = createReducer(estadoInicial,
 
         })
         
-        )
+        ),
+    on(actions.borrarCompletados,state=>state.filter(todo=>!todo.completado))
 /* on(actions.toggleAll,(state, {completado})=>state.map(todo=>{return{...todo,completado: completado}})));*/
 
 );

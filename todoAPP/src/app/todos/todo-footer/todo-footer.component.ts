@@ -2,7 +2,8 @@
 import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { AppState } from '../app.reducer';
-import { filtrosValidos, setFiltro } from '../filtro/filtro.actions';
+import {  filtrosValidos, setFiltro } from '../filtro/filtro.actions';
+import { borrarCompletados } from '../todo.actions';
 
 @Component({
   selector: 'app-todo-footer',
@@ -14,6 +15,7 @@ export class TodoFooterComponent implements OnInit {
   filtroActual: filtrosValidos ='todos';   //este y el de abajo lo ahgo para cambiar el filtro
   filtros: filtrosValidos[]=['todos','completados','pendientes'];
   pendientes: number = 0;
+  
 
 constructor( private store: Store<AppState> ){}
 
@@ -24,22 +26,29 @@ constructor( private store: Store<AppState> ){}
      // console.log(filtro);
      //.subscribe(filtro=>this.filtroActual=filtro);
 
-     this.store.subscribe( state =>{
+     this.store.subscribe( ({filtro, todos}) =>{ //usamos desestructuracion ,asi no te nemos que poner state ni aqui, ni abajo poner state.filtro/state.todos.filtro
 
-      this.filtroActual = state.filtro;
-      this.pendientes = state.todos.filter(todo=>!todo.completado).length  //que me filtre todos los que no estan completados
+      this.filtroActual = filtro;
+      this.pendientes = todos.filter(todo=>!todo.completado).length  //que me filtre todos los que no estan completados
      })
     
     
   }
 
-  cambiarFiltro(filtro:filtrosValidos){
+  cambiarFiltro(filtro1:filtrosValidos){
 
 
-    console.log(filtro)
-    this.store.dispatch(setFiltro({filtro}))
+    //console.log(filtro1)
+    this.store.dispatch(setFiltro({filtro1}))
     
 
   }
+  limpiarCompletados(){
+
+    this.store.dispatch(borrarCompletados())
+
+
+  }
+
 
 }
