@@ -4,7 +4,7 @@ export type filtrosValidos = 'todos' | 'completados' | 'pendientes';//creo uno p
 
 export const setFiltro = createAction(
     '[Filtro] Set  Filtro',
-    props<{ filtro: filtrosValidos }>() //necesitamos un dato,ya que queremos saber donde estamos en los botones de abajooo
+    props<{ filtro: filtrosValidos }>() //necesitamos un dato,ya que queremos saber donde estamos en los botones de abajooooo
     ) ;
 
 
