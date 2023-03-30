@@ -26,12 +26,13 @@ import { appReducers } from './todos/app.reducer';
     StoreModule.forRoot(appReducers),   //dentro había {todos:todoReducer} que lo cambiamos una vez hemos hecho la funcion para indicar que reducer maneja cada cosa
     StoreDevtoolsModule.instrument({
       maxAge: 25, // Retains last 25 states
-      logOnly: !isDevMode(), // Restrict extension to log-only mode
+      logOnly: !isDevMode(), // Restrict extension to log-only modeaa
       
     }),
     
   ],
   providers: [],
   bootstrap: [AppComponent]
+  
 })
 export class AppModule { }
