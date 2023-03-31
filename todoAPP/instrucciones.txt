@@ -135,5 +135,66 @@ Borrar TODOS LOS TODOS COMPLETADOS:
             Importante,poner la accion en todos, crearla,ponerla en el reducer y ahí mucho cuidado con map y filter
             Usamos map cuando queremos devolver todo el array pero con alguna funcion o algun cambio, cuando usamos
             filter, nos devolvera un array con los datos que cumpla la funcion(si quiero señalar todos pongo map)
-            En este caso como quiero devolver un array con los NO COMPLETADOS, pongo un map(todo=> !todo.completado)
+            En este caso como quiero devolver un array con los NO COMPLETADOS, pongo un map(todo=> !todo.completado).
+
+
+INGRESO /EGRESO APP :
+
+Creamos una carpeta llamada ingreso/egreso en redux y ponemos ng new ingreso/egreso.
+Creamos algun componente :
+  ng g c auth/login --spec=false -is
+  ng g c auth/register
+  ng g c dashboard
+  ng g c ingreso-egreso 
+  ng g c ingreso-egreso/estadistica
+  ng g c ingreso-egreso/detalle
+  ng g c shared/footer
+  ng g c shared/navbar
+  ng g c shared/sidebar
+
+  Configurar,copiamos los html de la carpeta descargada en los html creados con los componentes, vamos comprobando que funcionan los componentes. No olvidar
+  si usamos bootstrap o css especial, ponerlo en en angular.json,en styles
+
+  Creamo el app-routing.module.ts(ya lo tenia creado)
+  una vez creamos el archivo(esta creado ya) de app-routing.module, añadimos las rutas, una de ingresar otro de registro,otra a dashboard que es la 
+  que carga una vez paasamos el registro/inicio sesion y ponemos una mas para que cualquier otra ruta nos lleve de nuevo al dashboard.
+  Debemos exportar la funcion de abajo del archivo routing al app.module.ts para que disponga de las rutas. Despues debemos poner la etiqueta de
+  <router-outlet> en el html para que funcione las rutas
+  Comprobamos poniendo localhost:4200/login que va, con register tambien y si ponemos cualquier otra cosa nos lleva a dasboard(this works!)
+  para que un enlace redirija a un sitio(en login,para que ¿Quiere crear una nueva cuenta? nos lleve a register) ponemos esto en la etiqueta de html
+  de crear una cuenta: routerlink="/register"
+  En register lo mismo
+  Ahora ya no necesitamos poner <app-login></app-login>, <app-register></app-register> en app.component.html
+  Ahora debemos mostar detalle,estadistica ingreso-egreso en el dashboard. Para ello nos vamos al dasboard.html y ponemos la estrucutra:
+  <app-navbar></app-navbar>
+
+
+  <div class="page-body-wrapper">
+    <app-sidebar></app-sidebar>
+    <div class="main-panel">
+      <div class="content-wrapper">
+        //holaaa
+      </div>
+      <app-footer></app-footer>
+    </div>
+  </div>
+
+  En hollas le metemos un router-outlet de nuevo
+  Creamos un archivo en dasboard llamado dasboard.routes.ts para indicar las rutas que van a funcionar en el dashboard
+  Igual que en la srutas anteriores  vamos añadiendo las rutas de este modo:
+            declaramos:
+            {path: 'detalle', component: DetalleComponent} indicando el nombre del componente(creado al principio)
+
+  Ahora cogemos esta última funcion creada y la cambiamos en el archivo de app-routing.module.ts añadiendo un children par aindicarle que 
+  va a recibir rutas tambien:
+            añadimos children: dashboardRoutes
+
+  Ahora funcionan las ruta tanto /login y /register como /estadistica /detalle /login/estadistica login/detalle
+  Creamos las rutas para los botones(podemos poner directamente dondeu queramos la ruta /login)
+
+
+HACER BACKUP DE LA APLICACIÓN:
+
+
+
 
