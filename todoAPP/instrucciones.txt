@@ -194,7 +194,171 @@ Creamos algun componente :
 
 
 HACER BACKUP DE LA APLICACIÓN:
+git init
+git add
+git remote add origin (enlace)
+git push -u master(la segunda vez sera solo git push)
 
 
 
+Hacemos un releasetag para git:
+            git tag -a v1.0.0 -m "template listo" ---) Con esto creamos un tag de forma local
 
+            Ahora subimos los tags git push --tags
+
+Ahora por mucho que actualicemos git hub, tenemos una copia de este momento de la aplicacion.
+
+
+07-AUTENTICACION DE NUESTRA APLICACION LOGIN(NUEVA SECCION):
+
+veremos:
+            Firebase
+            AngularFire2
+            AngularFireAuth
+            Backend y autorizaciones
+            loginRegister
+            Sweetalert
+            Logout
+            grabar un documento en Firebase
+Empezamos con la comprobacion de que el botón de crear cuenta no se active hasta que no se rellene los campos. Usaremos formularios reactivos asi que 
+los importamos al app.module.ts
+Editamos el register.component.html añadiendo el fromGroup en el form y poniendo el nombre de la copia(en este caso registroForm)
+Luego añadimos un formcontrolName dentro de los input en los que metemos los datos(para poder guardarlos) con el nombre que hayamos dado a cad aatributo en
+en el component.ts(
+nombre: ['',Validators.required],
+correo: ['',Validators.required, Validators.email],
+password: ['',Validators.required]
+)
+En este caso nombre,correo y password
+
+
+
+Preparar base de datos:
+  usaremos firebase.google.com
+  Nos metemos, creamos cuenta,creamos proyecto
+  Configuremos metodos de acceso en AUTENTICACION. Ponemos de momento correo electronico/contraseña ( esto es simplemente para permitir a la aplicacion entrar mediante corre/pasword)
+  En data base usaremos el firestore beta
+  Creamos la base de datos en modo privado(el primero) y lo dejamos así:
+      //allow read, write: if false;  ---)ahora mismo lo tengo comentado, esto indica que deben estar autenticados para poder grabar
+          allow read, write;  //con esto indico ahora que no tienes que estar autenticado para "grabar"(leer y escribir)
+
+  COMUNICACION FIREBASE CON LA APLICACION:
+    Instalamos angular fire:
+    ng add @angular/fire ---) deberemos crear 3 archivos manualmente en una carpeta que tb crearemos llamda environment.
+    Creamos environment.pord.ts,environment.stanging.ts,environment.ts
+    Luego añadimos en angular.json :
+    "fileReplacements": [
+      {
+        "replace": "apps/some-app/src/environments/environment.ts",
+        "with": "apps/some-app/src/environments/environment.prod.ts"
+      }
+    ],
+Y luego instalamos con ng add @angular/fire
+
+CREAMOS PRIMER USUARIO:
+    Ponemos un comando: ng g s services/auth
+    Abrimos el archivo generado auth.service.ts 
+    Creamos el método y lo inyectamos en el register.component.ts y ponemss:
+       private authService: AuthService
+    Importante importar el modulo tanto en auth como en register.component
+
+  Ojo con los errores, puse login en vez de crearusuario y estuve horas buscando el problema. Luego las validaciones de firebase que he visto:
+    correo debe ser sdsds@sdsd.com/es , pasword, 6 digitos. Si no pones eso a la hora de crear salen errores aparentemente gordos
+  Una vz funciona, nos da el UID,identificador del usuario
+  Ahora ya si vamos al firebase(la web) vemos todos los intentos que hemos hecho de autenticacion
+  Ahora nos da error si creamos el mismo usuario tambien
+  No olvidar cuando inyectamos el loginform, meterlo en el html,en el form
+  No olvidar poner en el html, en cada input que necesitamos, ell formcontrolname
+  No olvidar poner el boton type="submit " si estamos con formularios
+  no olvidar meter el ngsubmit en el formulario, alado de formgroup. Estoy ahora mismo con login asi que le pongo ngSubmit="loginUsuario"(o el metodo que hayamos
+  creado en el componente.ts)
+  El comonente.ts manda directamente sobre el html
+
+  SWEETALERT2 PARA LOS ERRORES:
+  Vmos a editar los dsitintos errores, si ponemos mal el email,el nombre,correo
+  Buscamos por google sweetalert2 y lo instalamos: npm install sweetalert2
+  Cambiamos el que queremos por el console.error(erro) que teníamos
+  Para que funcionase, tuve que meter en el html principal : 
+  <script src="sweetalert2.min.js"></script>
+  <link rel="stylesheet" href="sweetalert2.min.css">
+  y hacer así la importacion
+
+
+  CERRAR SESION:
+
+  Creamos en auth.service un logout con su correspondiente return (this.auth.signOut());
+
+  Buscamos el boton y nos vamos al html donde este. Ponemos el metodo y en el componente.ts  creamos el metodo.
+  En este caso le ponemos un loading:
+  cerrarSesion(){
+    Swal.fire({
+      title: 'Saliendo de tu cuenta',
+      didOpen: ()=>{
+        Swal.showLoading();
+       
+      }
+    })
+      this.authService.logOut()
+      .then(()=>{
+        this.route.navigate(["/login"])
+        Swal.close();
+      })
+  }
+
+}
+No olvidar inyectar: private authService:AuthService,
+                     private route: Router
+
+
+  Obtener informacion del usuario(cuando se conecta,se desconecta..):
+
+  Creamos un metodo en auth.service.ts: initAuthListener(){}
+  OJO: la llamada ha de ponerse en el app.compontent.ts, ya que se registre,salga o inicie,siempre va a psar por el appcomponent
+  Importante que al hacer logout, aparezca null en fuser
+
+PROTEGER RUTAS(estar autenticados):
+
+Esto es para asegurarse de las rutas, de estar identificado para poder acceder al sitio web
+Creamos un guard     ng g guard services/auth ---) seleccionamos canActivate de momento
+Vemos la configuracion del guard. Sirve para que la persona noi pueda entrar sin estar identificado
+Debemos colocar este guard en el app-routing.module, y como queremos evitar que entren en el dashboard, lo ponemos ahí
+Vemos que no funciona porque tenemos el return true,si ponemos el return false ya funciona(en auth.guard)pero si podemos ir al login,ya que
+solo lo hemos añadido al dashboard
+
+Ahora creamos un metodo en authservice lllamado isAuth()
+import{map} from 'rxjs/operators';   Importamos esto porque nos permite coger un estado,mutarlo en lo que queramos,cambiarlo, lo que queramos.
+
+Ahora dentro del isAuth(){
+  return this.auth.authSttate.pipe(
+    map(fbUser=>fbUser!=null)  ---) si existe,regresa un true, si no existe un false. Nos devuelve un Obersvable,asi que hay que ponerle que resuelve un boolean
+  )
+}
+Este isAuth es lo que necesitamos llamar en auth.guard.ts
+Hemos añadido un tap, un efecto secundario que lo que hace es que si damos true o false ,hacemos algo. En este caso, si no estamos autenticados, en vez
+de dejar la hoja en blanco, nos envía a login
+Entre otras cosas, si cerramos sesion y damos atras(para entrar en el dashboard), vemos que no nos deja
+
+
+CREAR DOCUMENTO DE BASE DE DATOS POR CADA USUARIO:
+ PAra tener algo de informacion en firebase sobre el uid,y datos del usuarioS. Crearemos  un documento con email nombre y uid de cada usuario
+ Creamos un modelo para el usuario, dentro de la carpeta models(la creamos si no) creamo el archivo usuario.model.ts
+ Le ponemos los atributos que queremos ver, en este caso nombre,email y uid
+ Pensamos donde ponerlo, y decidimos en crear usuario, ya que es donde nos esta pidiendo los 3 datos
+ Como es una promesa podemos poner el .then y añadimos la accion de crear usuario con una const :
+  const newUser= new Usuario(user.uid,nombre,user.email) . Lo hemos puesto cuando se crea un usuario(ya que si se crea es que los datos son validos)entonces
+  podemos coger el nombre y email directamente de los atributos de arriba(nombre,email), o ir al user(user.nombre,user.email)El uid solo podremos mediante user.uid
+  ya que en crearusuario(a,b,c) ninguno de los atributos es el uid
+
+Inyectamos el firestore,en el constructor y luego hacemos la llamada dentro del .then
+En este caso se llama solo Firestore(lo comprobe porque puse AngularFirestore y me salia que no aparecia,busque en @angular/firestore y vi como se llamab)
+Siempre que haya una promesa podemos poner el .then .catch  y siempre hay que poner un return
+Ahora ya tenemos listo nuestro registro y podemos trabajar con el numero de usuarios que queramos
+
+
+08-REDUX EN NUESTRA APLICACION DE INGRESO / EGRESO
+
+
+  1) Crearemos nuestro primer reducer y acciones para controlar el estado de la aplicacion
+  2) ActionReducerMap
+  3) Dispach de acciones de UID
+  4) Acciones de Auth
