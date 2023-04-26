@@ -362,3 +362,806 @@ Ahora ya tenemos listo nuestro registro y podemos trabajar con el numero de usua
   2) ActionReducerMap
   3) Dispach de acciones de UID
   4) Acciones de Auth
+
+
+  Interacciones de Usuario-UI State:
+   Nos copiamos sus snippers.
+   Abrimos la carpeta shared y creamos 2 archivos:
+    ui.actions.ts   y ui.reducer.ts  
+  Instalamos ngrx.
+  Creamos el reducer con el sniper redux.reducer y lo configuramos así:
+
+          import { createReducer, on } from '@ngrx/store';
+          import { isLoading } from './ui.actions';
+          
+          export interface State {
+              isloading: boolean; 
+          }
+          
+          export const initialState: State = {
+            isloading:false,
+          }
+          
+          const _counterReducer = createReducer(initialState,
+          
+              on(isLoading, state => ({ ...state, isloading: true})),
+          
+          );
+          
+          export function counterReducer(state, action) {
+              return _counterReducer(state, action);
+          }
+
+  Creamos otro archivo que sera EL REDUCER global de la aplicacion: (el que mandaremos a app.module)
+        Creamos el archivo dentro de app
+        Ahora cada cambio que hagamos en nuestra aplicacion,vendremos al app.reducer.ts y dentro de interface los iremos poniendo
+Ahora nos vamos al app.module y ponemos los dos modulos :
+          //ngrx:
+
+          import{StoreModule} from '@ngrx/store'
+          import{appReducers} from './app.reducer'
+
+  Añadinedolos en imports:
+
+          StoreModule.forRoot(appReducers)
+
+  Instalamos ngrx.deevtools e importamos en app.module
+
+
+Dispach-Activar y Desactivar loading:
+
+ Queremos poner en true el isLoading cuadno estoy ingresando o creando un nuevo usuario
+ Lo hacemos primero en el login:
+          Lo primero es subscribirnos al ui:
+              Hacemos injeccion del store en el constructor del login.component
+                 private store: Store (lo importamos,aunque lo hace solo)Debemos ponerle un appState,que en este caso queremos el appState de nuestro achivo app.reducer
+                 private store: Store<AppStore>
+
+              Ahora vamos al ngOnInit y añadimos la suscripcion:(no sin antes crear una copia de cargando---) creamos debajo de loginForm: cargando:boolean=false)
+              
+                this.store.select('ui').suscribe(ui=>this.cargando = ui.isloading)
+                (con esto creamos una copia llamada cargando y le iniciamos como false, seleccionamos lo unico que tenemos hasta el momento('ui') y 
+              le decimos que cargando es exactamente igual que como esté isloading)
+              Recordar importar las acciones. A veces lo ahgo con import * as actions from 'src/app/shared/ui.actions'; y me evito problemas
+
+              Ahora mismo,vemos en dedux que funciona,cada vez que hacemos login aparece el estado cambiado,si hemos entrado dara true y luego false y si da error
+              al entrar dara false(ya que no entra a true nunca)
+              Pero que pasa? Que son subscripciones que se van acumulando, no se destruye la anterior, con lo que pude haber fuga de infomacion si se llena de subscripciones
+              Debemos borrarlas cuando abandonamos la pagina, para ello añadimos en implements Oninit--)  ,Ondestroy(lo importamos)
+              Añadimos tb un atributio nuevo: uiSubscription:Subscription(lo importamos,nos ayudara bastante)
+              Añadimos todo el store a ese subscription:
+
+              this.uiSubscription= this.store.select('ui')
+              .subscribe(ui=>{this.cargando=ui.isloading;console.log('cargando')});
+
+              Finalmente metemos en el ngOnDestroy(){this.uiSubscription.unssubcribe()}
+
+              Ahora vamos a login.component. buscanmos el boton de login, lo copiamos y ponemos espere...
+              Ocultaremos el botón de login con un if(usaremos el cargando que tenemos en el loginComponent)
+
+              Ahora tenemos un login, que cuando apretamos y cargamos, aparece el boton spin de cargando..
+              Y tenemos un boton de cargando cada vez que estamos cargando algo. Una manera muy sencilla de darle movimiento a la web
+
+
+      AUTH ACTION AND REDUCER:
+      Vms a hacer las accciones del reducer y del auth. Para ellos creamos en auth 2 archivos, uno auth.actions.ts y otro auth.reducer.ts
+      la primera accion sera setUser,que recibira un parametro(el user) por eso le metemos un prop<{}>
+      Hacemos otro para quitar usuario:
+      Ahora añadimos este recuder a nuestro principal(app.reducer) y añadimos las 3 lineas:
+                  import * as auth from './auth/auth.reducer';
+                  user:auth.State
+                  user:auth.AuthReducer
+
+        Ya lo tenemos configurado,ahora toca decidir cuando vamos a activar la accion
+        Nos vamos a auth.service.ts
+        Añadimos el appState: private store : store<AppState>{}
+        Vamos a meterlo en el initAuthListener
+        Aqui tenemos que fijarnos en una cosa. El objeto no da el nombre,si mandamos  console.log(fuser) veremos que nos da todo menos el nombre
+        El nombre debemos obtenerlo del firebase(cuando creamos el documento añadimos el nombre) entonces, haremos la llamada asi:
+          this.firestore.doc(`${fuser.uid}/usuario`).valueChanges() //este es el Obersvable
+          .susbcribe(firestoreUser=>{
+            console.log(firestore.user)
+          })
+
+
+          Almacenar en el store el usuario de firebase:
+
+
+
+          Debemos hacer una pequeña conversion del objeto que recibimos(firebase) a algo de mi propia clase
+          Entonces nos vamos a nuestro modelo de usuario y creamos un metodo:
+          static fromfirebase(firebaseUser:any){ ---)lo haremos con desestructuracion   static fromfirebase({}) y dentro,los nombres que tengamos en nuestro firebase(email,nombre,uid)
+            return new usuario('uid','nombre','asas@asas.com')
+          }
+          entonces quedaría así:
+            static fromfirebase({email,nombre,uid}){
+              return new Usuario(uid,nombre,email) (aqui debemos poner el orden que tenemos en el modelo)
+
+            }
+            Con esto hemos hecho que el objeto que recibimos por firebase,lo convertimos en un objetos como nuestro modelo,para poder usarlo
+
+            Ahora creamos en auth.service una constante igual que nuestro modelo.
+            Ahora lo añadimos al store, y le decimos que el user sera el objeto dado
+            this.store.dispatch(actions.setUser({user}))
+
+            Ahora si abrimos redux y entramos, vemos como en nuestro USER ya tenemos todo el usuario. Tenems en nuestra copia, toda la informacion
+            para poder trabajar. Esto es redux
+
+            Si nos fijamos en app.component tenemos que nuestro authservice se lanza una vez( solo una vez al principio,asi funcionan los servicios en angular)Entonces no podemos cerrar
+            esta suscripcion,porqeu nos los cargaríamos
+            Con lo que debemos salirnos de la sucripcion al firebase.doc
+            Si no se podrucen problemas al salir y entrar con varios usuarios, para ello:
+              Creamos una variable en authservice:
+
+                userSubscripcion: subscription
+
+                Ahora nos suscribimos con todo lo del doc con lo que quedará asi:
+                  this.userSubscripcion = (a toda la suscripcion que tenemos con el doc)
+
+                  y abajo en el else{} ponemos la unssubcribe:
+                    this.userSuscription.unsubscribe()
+
+                    Con esto hemos hecho:
+                      creamos una variable para tener una copia de todo. LE decimos qeu es = a toda la suscripcion que queremos eliminar
+                      cuando no estemos dentro.
+                      Luego esta copia la cerramos cuando queramos, ene ste caso ,cuando no estemos dentro. Así ya no habrá ningún tipo de dato
+                      que pueda cruzarse
+
+                      Ahora ya entramos con todos los usuarios y no hay problema de cruce de datos
+              git tag,vemos cuales tenemos y añadimos uno
+              git tag -a v4.0.0 -m "seccion 7 acabada"
+              git push --tags
+
+          BACKUP. FIN SECCION 8
+
+SECCION 9 : MODULO INGRESO / EGRESO:
+              Vamos a hacer cada modelo,con sus reducer,sus acciones.,actualizar store,grabar items,borrar itrems,hacer el crud.
+
+              temas principales:
+                ·Crear modelo de Ingreso y Egresos
+                ·Pantalldas de capturas de datos
+                ·Servicio de ingres egreso
+                ·Loadings
+                ·Acciones y Reducer de ingresos y Egresos
+                ·Leer de Firebase
+
+      MODELO DE UN INGRESO Y EGRESO:
+             
+            Creamos un documento en firebase, que sera tipo arreglo y lo meteremos en el medio, en usuario,para tener ahi un documento que nos
+            registre todos los accesos de ESE USUARIO
+            Creamos un nuevo modelo(siempre nos ayudará mejor), entonces nos vamos a models y creamos ingreso-egreso.model.ts
+            Lo creamos con 4 atributos(como siempre en el constructor uno de ellos,el uid, que aparecera eventualmente(si está))
+
+            Nos vamos a ingreso-egreso.component.ts Creamos una variable llamada ingresoForm. FormGroup(usaremos formularios reactivos)
+            Inyectamos en el contructoel formBuilder(private fb:FormBuild) y en ngOnit lo unimos :
+
+              this.ingresoForm = this.fb.gorup({
+
+                  Aqui seguimos la estructura del modelo:
+                      descripcion: ['',Validators.required],
+                      numero: ['',Validators.required],
+                      tipo:['', Validators.required]
+              })
+
+            Ahora nos vamos al ingreso-egreso html y añadimos en form el control de formGroup. YA de paso añadimos este metodo 
+            (ngsubmit)="guardar()" (lo añadimos al componente) y le damos console con el ingresoform.value a ver que hay
+            Ahora toca editar el html para indicar a los campos que informacion recoger.
+            Nos vamos al input de descripcion  y añadimos el formControlName="descripcion",formControlName="cantidad",formControlName="tipo"
+
+            Editamos el html y ahora ya tenemos los ingresos. Si apretamos el boton de ingreso lo cambiamos a egreso y al añadir sale todo eprfecto. Se necesita los *ngif para indicar que boton se muestra
+            (click) para indicar a que tipo pertenece,formgroup, formControlName para el formulario
+            (falta la parter del portatil, sobre la seccion 100)
+
+    103-Obtener el UID de nuestros elementos de firebase
+
+          Cambiamos el valueChanges por snapshotChanges, de modo que al enviar y cambiamos los return por ese objeto. AÑadimos el map y asi
+          lo convertimos en lo que queramos. Ponemos return y en este caso queremos un map(buscamos en el DOM el uid y el data, que es una funcion que nos devuelve todos los datos)
+          con uid y los datos de cada movimiento. Lo que pongamos en el return sera lo que veamos en forma de objeto
+
+  104-Dispatch de las acciones para cargar items
+
+              Aquí haremos que todo lo que veiamos en consola arriba, lo veamos en nuestro nodo de ingresos-Egresos
+              (de eso se trata, de poder ver todo a traves de redux)
+              PARA QUE UN Obersvable SE DISPARE HAY QUE SUSCRIBIRSE.
+              Cambiamos de ingreso-egreso service añadiendo el return arriba y quitando el suscribe de abajo para ponerlo luego en el dashboiard
+              bajo la llamada al metodo( this.ingresoEgresoService.initIngresosEgresosListener(user.uid))
+
+              Ahora necesitamos poner todo esto en la accion que nosotros creamos como setItems de ingresos-egresos actions con la coleccion de ingresos-egresos
+              Primero miramos si estamos suscritos al store(que si ya que cada vez que queramos pasar algo al redux, debemos comprobar que estamos subscritos,solo 1 vez por archivo) y luego ponemos despues del suscribe:
+                this.store.dispatch.setItems({items:ingresosEgresos}) (lo importamos)
+
+                En la pestaña de REDUX ya tenemos todos los datos
+                Por ultimo necestiamos destruir esta ultima suscripcion
+
+
+    105- Mostrar la informacion(104) en la pestaña detalle
+
+              Queremos que salga todo en la pestaña detalle, lo primero será irse al detale.component.ts y suscribrinos al store
+              Nos creamos una variable de tipo ingresoEgreso(el modelo)
+              Ahora nos vamos a l OnInit y hacemos el select de lo que queremos del store(para enviar dispatch,para coger select):
+                this.store.select('ingresoEgreso').subscribe(({items})=>{
+                this.ingresosEgresos=items
+              Ahora toca ir al html y añadir estos ingresosEgresos
+              Ahora en los td debemos poner {{nombre}} siendo el nombre exactamente igual que el modelo(estamos accediendo a la copia del modelo)
+              Los tipos numericos siempre por | currency
+              Para poner rojo o verde,vamos al td de tipo y añadimos [class.text-success="item.tipo===ingreso"]
+
+              Queremos que cuando apretemos el boton de borrar veamos el id.Para ellos le damos click
+              No consigo mostrar el uid con el boton borrar
+              Nos falta el unset items(para que la lista se borre cuando salgamos de la aplicacion,se borre de REDUX)
+
+
+    106-eliminar items de firebase:
+
+    queremos eliminar el item apretando el boton borrar.Tenemos que meternos en items,entonces vamos al firebase y ahi vemos que necesitamos.Para borrar
+    necesitamos el uid del usuario mas el id del documento. Su url es /uid/ingresos-egresos/items/iddoc
+
+    Se hara en detalle pero será como siempre n el ingreso-egreso.service donde configuraremos las accciones
+    Creamos el metodo(borrarEgresoIngreso) y tenemos que configurar toda la url para apuntar a ese lugar en firebase.No apuntamos a la coleccion
+    porque SOLO QUEREMOS EL DATO DE UN ITEM,YA QUE SOLO QUEREMOS BORRAR ESE ITEm
+    Ponemos la misma variable para el uid del usuario(la tenemos arriba ya declarada) y añadimos un delete()
+    Este delete da una promesa,con lo que si es true,se borrara,como es promeso metemos un return.
+    AL meter el return, el metodo se convierte en una promesa
+    Ahora solo queda implementar ese metodo en detalle.component
+    Importamos el servicio(en el constructor)
+
+    Por fin arreglo lo de borrar. Lo conseguí descrubiendo como llegar la id, y era mediante 
+    console.log(uidItem.uid)
+
+    return this.angularFireStore.doc(`${uid}/ingresos-egresos/items/${uidItem.uid}`).delete()
+    Lo importante es que uid estaba en uiItem.uid, luego lo añado al delete y ya borra los items que qpretemos al boton.
+    En el boton solo deje item
+
+    107-ORDENAR items-pipe
+
+          Crearemos un pipe para ordenar los items. podemos crearlo dentro de ingreso-egreso,pero crearemos una carpeta con todos los pipes que necesitemos
+          ng g pipe pipes/ordenIngreso
+          Le indicamos que recibiremos un arreglo de tipo ingreso/egreso y que saldra tambien un arreglo de ingreso/egreso pero con el orden que nosotros
+          queremos
+          Usaremos el metodo sort
+          lo configuramos de modo que si es ingreso nos devuelva algo y si no que nos devuelva otra cosa y ahora solo queda que nuestro ngfor del 
+          detalle.component.html pase por ese pipe | (nombrepipe)--) el nombre que hemos puesto en name. No se por que pero no funciona,así que quito el pipe del html
+
+  108.DASHBOARD-ESTADÍSTICA  BASICA
+          
+        Vamos a colocar el dinero total en el dasboard, tanto los ingresos totales,como los egresos y el numero de ingreso y egresos debajo de cada uno
+        Nos vamos a estadisticas y empezamos
+        Creamos 4 variables, una para ingresos,otra para sus totales y lo mismo con egresos.
+        Nos subscribimos al store y ya tenbemos acceso a todos los ingresos/egresos
+
+  109-110. Graficas chart
+
+  Nos vamos al enlace https://valor-software.com/ng2-charts/ 
+  Lo instalamos:
+        Install ng2-charts using npm
+          npm install --save ng2-charts
+        Install Chart.js library
+          npm install --save chart.js
+
+  Lo importamos en nuestro appmodule. Lo importamos y lo declaramos en importamos. Elegimos la grafica que queremos y seguimos las intrucciones.
+  Primero copiamos el html y lo pegamos en estadistica.
+  Vampos al estadistica component.ts y añadimos el import que no indica la web(cuando elegimos una grafica abajo nos pone html y typescript)
+  Debemos coger el html, pegarlo y lo mismo con el typscript, cogemos los import,los pegamos y cogemos los 3 metodos y los pegamos tambien, en este caso cojo esto
+  de la web:
+
+  (los 3 metodos)
+            public doughnutChartLabels: string[] = [ 'Download Sales', 'In-Store Sales', 'Mail-Order Sales' ];
+            public doughnutChartData: ChartData<'doughnut'> = {
+              labels: this.doughnutChartLabels,
+              datasets: [
+                { data: [ 350, 450, 100 ] },
+                { data: [ 50, 150, 120 ] },
+                { data: [ 250, 130, 70 ] }
+              ]
+            };
+            public doughnutChartType: ChartType = 'doughnut';
+
+  (el import)
+            import { ChartData, ChartEvent, ChartType } from 'chart.js';
+
+
+            Ahora editamos(según el curso,aquí variará en función de lo que queramos)
+
+            Acabe de configurar probando datos en datasets hasta que puede dejarlo asi,y funciona
+
+111. Colocar el nombre arriba en el dasboard de la persona:
+
+
+        Vemos que nos tendremos que fijar en el user para ver el nombre del usuario(esta user,ingresoEgreso y )
+        Consigo hacerlo solo, a veces aparece el error de que no puede leer la propiedad null o vacía. Para quitar el error añadimos un ?
+        con lo que le indicamos que si no aparece(en algun momento no tenemos nombre,ya que no entramos) que no lo ponga
+
+        Si queremos añadir un filtro por si existe, simplemente añadimos un pipe filter de 
+        .pipe(
+          filter(({user})=>user !=null)
+        )
+
+        Por ultimo reinicio los datos en estadistica dentro del metodo generar estadistica,ya que si no , si por ejemplo cambio el nombre desde 
+
+        firebase, el programa vuelve a realizar los calculos con los datos que ya estaban, con lo que se duplica.
+
+SECCION 10 :  NGRX CON LAZYLOAD:
+
+        Primero modularizaremos la aplicacion.
+        Temas de la sección:
+
+
+          Modulos de Angular : Módulo de Auth
+                               Módulo de Share
+                               Módulo de Ingresos y Egresos
+          Dashboard Routing en Angular
+          Guard
+            Can Activate
+            Can Load
+
+          Implementar el StoreModule.foFeature()
+
+
+          116. Módulo Auth:
+
+            Continuación de la aplicacion:
+              Lazyload es una carga perezosa, sólo carga los módulos que estamos usando.Hasta ahora sivamos al login sólo vemos el login, pero realmente esta cargando
+              todos los módulos, y no debe ser así:el modulo de ingreso-egreso sólo debería cargar cuando pase el login. Para ello debemos modularizarlo.
+              Empezaremos con el auth
+              Creamos un nuevo modulo en auth:
+                ng g m auth/auth --flat
+
+              Pondremos ahora en la parte de declaraciones todo lo relacionado con auth: loginComponent y registerComponent.
+              Vamos al app.module y borramos las cosas que acabamos de poner en auth.
+              En auth, en imports añadimos:
+                            commonModule
+                            ReactiveFormsModule
+
+              Ahora en app.module importamos el modulo de auth. Ahora tendremos 1 en vez de dos.
+              Añado tambien en auth el routermodule para que ahora sí funcione
+
+
+            117-Modulo shared:
+                Hacemos lo mismo que con Auth, colocamos los 3 modulos que le pertenecen(footer,sidebar y navbar), importamos tambien el routerlink y luego lo 
+                añadimos al app.module. Pero a diferencia del auth.module necesitamos EXPORTAR desde shared todo lo declarado,ya que en nuestro dhasboard tenemos el app-footer
+                el app-navbar y el app-sidebar. Ojo con esto,una vez los exportamos(simplemente añadir:
+                  
+                  exports:[
+                  FooterComponent,
+                  NavbarComponent,
+                  SidebarComponent
+                ]
+              
+              debajo de los imports de shared.component)
+
+
+            118-Modulo ingreso-egreso:
+
+                (el que mas faena tiene)
+                Nos creamos un nuevo modulo:
+                Pongo los dos modulos en vertical(hay muchos modulos que pasar)
+                Cargaremos este modulo con el LAZYLOAD.
+                Pasamos dashboardComponent,ingresoComp,EstadisComp,DetalleCom.
+                Vamos reparando errores como tener que importar el routermodule,ya que usamos el dashboard y po ello rutas
+                Quitamos el sharemodule de app.module, solo lo usaremos aqui
+
+            119. Dasboard Router Module
+                Marcamos las rutas de app-routing.module,ya que vamos a crear otras hijas.
+                Creamos un modulo en dashboard
+                Quitamos el commonModule,ya que solo es para ng y todo eso. Creamos un const rutasHijas:
+                Routes=[
+  
+                ]
+                y entonces copiamos todo lo que habíamos marcado en rutas
+                HAcemos el import de routerModule.forchild y añadimos el routerModule en export,para indicar
+                que a la aplaicacion que puede disponer de ella
+                TODO ESTE MODULO lo añadimos al INGRESO EGRESO MODULo
+
+
+             120. LazyLoad en modulo ingreso-egreso:
+
+                Para aplicarle el lazyload quitamos el ingresoEgresoModule de app.module.
+                IngresoEgresoModule lo quitamos para aplicarle el lazyload. Copiamos la ruta de donde se importa y borramos el import
+                Nos vamos al app-routing y añadimos:
+                {
+                  path:'',
+                  loadChildren: () =>import('./ingreso-egreso/ingreso-egreso.module').then(m=>m.IngresoEgresoModule)
+                }
+                Esto indica que cuando se vaya a esa url se cargue el modulo de ingresoEgreso
+
+                121.CanLoad:
+
+                  Queremos prevenir que el usuario que no esté autenticado no pueda acceder a la aplicación. Para ello añadimos en app-routing,antes
+                  de la ruta que nos lleva al dashboard metamos un canLoad: [Authguard]
+
+                  Nos vamos a auth.guard.ts en services e implementeamos el canLoad, lo ponemos igual que el canActivate:
+
+
+                  canLoad(
+                   
+                
+                  ): Observable<boolean> {
+                
+                    return this.authService.isAuth().pipe(   //a partir de pipe le decimos que si no estamos logueados, nos envie a login
+                      tap(estado=>{
+                        if(!estado){this.router.navigate(['/login'])} //no olvidar, para usar rutas, importar el Router
+                      }),
+                      take(1) --) con esto cancelo la suscripcion,es la unica diferencia con canActivate
+                    );
+                
+                  }
+
+                122.LazyLoad en Store.
+
+                Queremos que el store solo exista cuando entre alguien
+                Vamos a app.reducer.ts y comentamos el  // ingresoEgreso:ingresoEgreso.ingresoEgresorReducer
+                Ahora vamos al app-module.Como es el modulo de ingreso y egreso el que quiero poner en lazyload, nos vamos a su modulo.ts Lo añadimos en imports
+                Lo dejamos así: StoreModule.forFeature('ingresosEgresos',ingresoEgresorReducer) donde el primer atributo es el nombre que queramos y el segundo
+                el reducer que va a estar en lazy.
+                necesitamos crear otra interface en ingreso-egreso.reducer que ya indiquemos que trae el modulo de ingresosEgresos.Debemos ponerle que extends
+
+                al AppState,que es el principal de la aplicacion,ahora debemos cambiar el nombre de esta interface , por la de AppState en donde nos este dando fallos
+                (en mi caso en detalle y edstadistica)Debemos importar tambien el nuevo AppStateWithIngreso
+
+      SECCION 11 DESPLEGAR LA APLICACION EN FIREBASE HOSTING
+
+            temas principales:
+                  Uso FirebaseCli
+                  FirebaseHosting
+                  Despliegue de producción de nuestra aplicación
+                  Pruebas de nuestra aplicación de ingres y egreso
+
+            No tiene nada que ver con REDUX o Angular, es solo de como subir la aplicacion en firebase hosting.
+            Nos vamos a la carpeta del proyecto y ponemos ng build --prod (puede tardar un poco)
+            Nos crea varios archivos, el primero 0.3 es nuestro modulo ingreso
+            el main. es el principal. No funciona el ng build, nos da un error de environments. Buscando y buscando arregle el problema cambiando el fileReplacements
+            src/environments/environment.ts (antes estaba app/src/environments/environment.ts)
+
+            Una vez arreglado nos vamos a hosting en firebase y le damos a comenzar. Nos pedira que instalemos :
+            npm install -g firebase-tools  (lo instalamos como admin)
+            Seguimos las iinstrucciones(firebase login, firebase init)
+            Sigo la documentacion del sitio(https://firebase.google.com/docs/hosting/quickstart?hl=es&authuser=0)
+            Creara dos archivos, firebase.json y .firebaserc
+
+
+SECCION 12 DISEÑO DE NUESTRA APLICACION:
+          Temas puntuales:
+                  Creacion proyecto angular
+                  Modulos angular
+                  Rutas
+                  Consumo de Serviciosd register
+                  Serviciosd
+                  html de los componentes
+                  aplicacion basica angular
+        Creamos el proyecto dentro de redux---- ng new http-effects
+        Creamos dentro de app, un directorio models ,servicios, share(eklementos compartidos por la aplicacion), otro llamado store(acciones,reducer y efectos)
+        Otro llamado usuarios
+
+        Ahora nos vamos al html para instalar bootstrap(popnemos el link)
+        Instalamos el fontawesome(nos vamos a su doc y añadimos el enlace) :
+        <script src="https://kit.fontawesome.com/96ab3aa3f8.js" crossorigin="anonymous"></script>
+        Nos pedirá registrarnos primero.
+        Creamos un modulo en nuestro share.
+        Lo importamos en nuestro app.module
+        Creamos un componente llamado navbar. Buscamos por bootstrap un navbar y lo copiamos
+        Vamos al app.component.html y ponemos nuestro app-navbar
+        Creamos en usuario un componente y un modulo:
+        ng g c usuarios/lista
+        ng g m usuarios/usuarios  
+        ng g c usuarios/usuario //mostraremos informacion de 1 usuario solo
+
+        Ponemos en usuarios.module.ts  los dos componentes, de lista y de usuario. Los exportamos ya que los necesitamos en otros lugares
+        Incorporamos la lista para comprobar que funciona,para ellos nos fijamos en el nombre que tiene la lista(selector: 'app-lista')
+
+        134-Rutas de la aplicacion
+                  Vamos a crear las rutas (del home,usuario...)
+                  Lo creamos mediante un módulo:
+                    ng g m appRouting
+                  Dentro de este routing creamos la constante con las rutas, lo haremos así:
+                        const routes:Routes = [
+                          {path: 'home', component:ListaComponent},
+                          {path: 'usuario/:id', component:UsuarioComponent}
+                        ]
+                        e iremos añadiendo las diferentes rutas debajo de home. En el caso de usuario, logicamente queremos enviar un argumento,
+                        en este caso el id del usuario. En este caso ira al componente de usuario
+                        usaremos este : {path: '**', redirectTo:'home'}
+                        para decirle que todo lo que no sea las rutas de arriba nos lleve a home.
+                        Ahora importamos el routerModul, y le ponemos el forRoot añadiendo nuestra constante de  routas
+                        Ahora lo exportamos(el routermodule,para que podamos usarlo en otros lugares)
+                        Ahora añadimos el AppRoutingModule en el app.module par aquye sepa como funciona(lo ponemos en imports)
+
+                        AHORA TOCA poner el router-outlet en el html. Lo ponemos en el app.component y quitamos el app-lista. Para implementarlo en el navbar
+                        (para que funcionen los enlaces) debemos importar el modulo en navbar (routermodule) y en el html de navbar poner donde pone :
+                        href="#   poner router-link="home" (ponemos la ruta que queramos)"
+                        Para el boton de buscar (sera buscar un usuario) vamos a poner un evento en click llamado irUsuario que le daremos un valor nombrado en
+                        el input de arriba(#txtInput) y que sera llamado para buscar ese usuario. Quedaria así:
+                        <input  #textInput class="form-control me-2" type="search" placeholder="Search" >
+                        (click)="isUsuario(textInput.value)".
+                        Ahora toca editar el navbar component. Necesitamos navegar, usar rutas, con lo que creamos en el constructor un private router = Router,
+                        importamos el Router y creamos el metodo irUsuario.
+                        irusuario(id:string){
+                          if(!id){return};
+
+                          this.router.navigate(['/usuario',id])
+                        }
+                        Con esto, solo funcionara la ruta cuando en el input pongamos un numero
+                        Añadimos la funcion de click pero con keyup.enter(es decir cuando apretamos enter) y le decimos que vamos a hacer lo mismo que con edicion
+                        click:
+                        (keyup.enter)="irUsuario(textInput.value)"
+
+                        Si queremos que quede marcado ponemos routerLinkActiva="active" en los li que queramos que se marquen al apretarlos
+
+
+                      136-Regres y Postman
+                        Usaremos reqres.in(web)
+                        Pruebas en postman con la api de reqres. Vas pinchando en lo que quieras, y la api te dice que codigo poner en postman
+
+                      137- Modelo de usuario
+                        Para poner exactamente lo que pone la api. vamos a un user y copiamos lo que pone en data, en este caso:
+                          "id"=
+                          "first_name"=...
+
+                        Creamos la classe usuario con todos los atributos en el constructor
+
+                      138 Usuario-servicio
+
+                      Creamos el servicio dentro de services :
+                        ng g s services/usuario
+                        (los servicios ahora no se importan al app-mopdule, aparece esta instancia en su lugar:providedIn: 'root')
+                        Primero importamos el httpClientModulo en el app.module.ts Debemos importarlo manualmente arriba. Esto lo hacemos para realizar peticiones
+                        Ahora en usuario.service ya podemos meter el httpClientModulo en el constructor(private http:HttpClient),importamos arriba el httpClient
+                        Esto es lo necesario para conectarnos a servicios.
+                        Para usarlo, creamos un metodo,accedemos al http y le ponemos la url:
+                          getuser(){this.http.get(`URL`)} (mejor crear una variable arriba private url: https://reqres.in/api)Esta url es la que necesitamos(a coseguimos de la web)
+                          Ponemos solo la parte que vamos a reutilizar. 
+                          Ya en el metodo,en el get, ponemos la url entera:
+                          return  this.http.get(`${url}/users?per_page=6`);
+                          Para solo enseñar la informacion que queremos nos vamos al services y pasamos ese return por un pipe.
+                          Ojo con el pipe porque si no pongo dentro del pipe,dentro del mapa así:
+                           map<any,unknown>(resp=>resp['data'])    me da error siempre a la hora de sacar data. Debemos meter el any,unknown(ni idea de porqque)
+                           El unknown luego lo cambio por any,ya que no me deja asignar this.usuarios= users (si pongo unknown)
+
+                          139.html de lista.component
+
+                          Todavía no tenemos redux en esta app,no tenemos ngrx,ni el store.
+                          En lista.componente vamos a crear una variable llamada usuario de tipo Usuario.Lo inicializamos como arreglo vacío
+
+                          Vistazo a avatar(ponemos[url])
+
+
+                    SECCION 13 EFECTOS-NGRX/effects
+                        temas principales:
+                          EffectsModule
+                          Effects
+                          Actions de efects
+                          ofType
+                          RXJS:
+                            Observables
+                            catchError
+                            map
+                            swithmap
+                            of
+                          Consumo de servicios REST
+                          Efectos con y sin parámetros
+                          Teoría de los efectos
+                          Implementanción de efectos
+
+
+                        144.Acciones de usuarios
+                          Creamos la carpeta store dentro de nuestra app(la tenía creada). Dentro tendremos todos lo relacionado con el store,
+                          las acciones, el reducer,...
+                          Creamos 3 directorios:
+                            reducers,efects,actions.
+                            Dentro de actions creamos usuarios.actions.ts no sin antes importar todo el paquete de ngrx
+                            Creamos(despues de crear varias acciones) el index.ts que será desde donde simplemente exportamos * desde usuarios.actions
+
+                        145.Reducer
+                          Seguimos con la configuración.
+                            creamos usuarios.reducer.ts dentro de reducer(usuarios con s)
+                            Ponemos dentro de la interfaz las variables que necesitaremos:
+                            users:[],
+                            loaded:boolean,
+                            loading:boolean,
+                            error:any
+
+                            Esto mismo lo ponemos en nuestros usuariosInitialState, pero iniciandolas(dandole false,false y null en error)
+                            En cargar usuarios solo cambiamos la variable de loading a true
+                            En cargarUsuariosSucces, vamos a recibir nuestros usuarios(en forma de array) así que lo añadimos en la acción:
+                            on(actions.cargarUsuariosSuccess, (state ,{usuarios})=>({
+                              ...state,
+                              loading:false,
+                              loaded:true,
+                              users:[...usuarios] //aqui tuve que poner en user:any,delo contrario me daba error.Luego lo cambie y puse arriba users:Usuario[]
+                            }) )
+
+                            Configuramos la accion de error.
+                            Ya tenemos nuestras 3 acciones, una que solo dispara el loading, otra que va a recibir los usuarios y los va a cargar y otra que 
+                            me manejará el error
+                            Creamos otro archivos index.ts para exportar todo desde ahí
+
+                            146.AppReducer, StoreModule, devtools
+
+                              Creamos el archivo que sera nuestro reducer principal, el AppReducer(lo creamos dentro de store)
+                              Arriba ponemos usuarios y al estado inicial que apunta(el appstate de nuestro usuarios.reducer)
+                              y ya abajo le ponemos el nombre del reducer
+                              Ahora seguimos las instrucciones de ngrx para con el Store. 
+                              Debemos hacer en el app.module el forRoot: añadimos:
+                              StoreModule.forRoot(appReducers) indicandole que nuestros reducers 
+                              Ahora toca el StoreDevModule.Seguimos las instrucciones de ngrx
+
+                              Ahora toca editar la lista.component. No vamos a usar servicios como lo hemos puesto, lo haremos mediante efectos.Paso a comentario todo lo
+                              que había y vamos a editar
+                              Todo funcionará de modo que cuando se active nuestra accion cargarUsuarios, se activara un efecto que activará la acción de cargarUsuariosSuccess
+                              y hara la peticion http o lo que sea y cuando regrese ya activo la accion cargarUsuariosSucces
+
+                            147. ¿Qué son los efectos?
+
+                              No todas las acciones dispararán efectos.(importante) Sólo las que nosotros queramos(efecto=acción secundaria)
+                              · Su función es básicamente escuchar accion despachadas por ngrx/store ( si no tenemos instalado el ngrx no FUNCIONA,Es parte de ese paquete)
+                              · También entra en su función simplificar la lógica en los componentes
+                              · Comunicarse fuera del ecosistema de Angular(Http,sockets o tareas asíncronas)
+
+                                               realiza una          procesada por       es leído por el comp
+                                  ----> COMPONENTE ------> ACCION----> REDUCER----> ESTADO ---
+                                 |                                      el reducer crea      |
+                                 |___________________________________________________________|
+        
+                                Nuestro store seria la accion-reducer-estado
+
+                                Con los efectos pasa esto:
+                                                
+                                        ACCION  <---------     EFECTO
+                                                --------->      ^  
+                                                                |  |
+                                                                |  |
+                                                                |  |
+                                                                   V
+                                                               SERVICIO
+                                                                ^  
+                                                                |  |
+                                                                |  |
+                                                                |  |
+                                                                   V
+                                                              SERVIDOR
+                                  Aquí, un efecto recoge una accion, que activa un servicio,un servidor,el servicio recibe la respuesta del servidor y se la
+                                  devuelve al efecto que dispara una nueva acción para que llegue al reducer,cree un nuevo estado y este sea leído por el componente.
+                                  Las acciones no deben hacer peticiones, deben trabajar únicamente con el argumento que reciben. JAMÁS debe necesitar recursos externos
+                                  a las mismas acciones     
+                                  
+                                  
+                             Vamos a la carpeta effect y creamos el archivo usuarios.effects.ts Aquí pondremos todos los efectos que tengan que ver con los usuarios
+                            Creamos una clase normal( export class UsuariosEffects{}) y le añadimos @injectable. Esto es la estructura de un efecto.
+                            No olvidar importar de @angular/core
+                            Ahora instalamos effects desde gnrx = ng add @ngrx/effects@latest
+                            Ahora necesitams hacer una inyeccion de algo
+                            Creamos un constructor y le hacemos una inyeccion :
+                              private action$:Actions  ($ sirve para indicar que es un obersvable) ojo con este Actions(lleva s y viene de ngrx/effects)
+                              
+                             Creamos nuestro primer efecto llamado cargarUsuarios, como es un obersvable le ponemos $:
+
+                              cargarUsuarios= createEffect()   (cuando ponemos ()=> es porque necesita un callback)
+
+                              Aquí va lo difícil, la conf dele efecto(va entre los paréntesis)
+
+                              cargarUsuarios$=createEffect(
+                                ()=>this.actions$ 
+                            )
+                            Si lo dejaramos así, esto se dispararía siempre, pero queremos que solo lo haga cuando se dispare la accion cargar cargarUsuarios de 
+                            usuarios.effects.
+
+                                cargarUsuarios$=createEffect(
+                                  ()=>this.actions$.pipe(
+                                      ofType(usuarios.cargarUsuarios),
+                                      tap(data=>console.log('effect tap', data)),
+                                      mergeMap()
+                                  )
+                              )
+                              Aunque el tap no lo usaremos, nos sirve para ver que información esta pasando a través del efecto
+                              Usamos el mergeMap para lanzar el servicio,para ello tambien necesitaremos inyectar el UsuarioService en el constructor:
+                              private usuariosService:UsuarioService.
+
+                              Queda algo así:
+
+                                      ofType(usuarios.cargarUsuarios),
+                                      tap(data=>console.log('effect tap', data)),
+                                      mergeMap(  //para poder usar el servicio. Recibe un obersvable(podemos ver en el archivo que getUsers() da un obersvable)Inyectar el servicio(usuarioService)
+                                          ()=>this.usuariosService.getUsers()  
+                                              .pipe( //lo pasamos por pipe para pasarle un tap y ver que está pasando
+                                                  tap(data=>console.log('getUsers effects' , data))
+                                              )
+                                      )
+                                  )
+
+                              Ahora nos vamos a nuestra lista.component, donde teniamos la llamada de getusers. Inyectamos el store Store<AppState> y en el ngOnInit
+                              lo activamos this.store.Dispach(cargarUsuarios)
+                              Sólo falta la última configuración que haremos en appModule(la miramos en la web de ngrx)
+                              Creamos un archivo en effectos(index.ts) en donde haremos esta exportación:
+                                  import { UsuariosEffects } from "./usuarios.effects";
+                                  export const EffectArray:any[]=[UsuariosEffects] //aqui va el nombre que hayamos dado en usuarios.effects
+
+
+                                  Lo importamos. Ojo que no exportamos * como en los demás,aquí debemos hacerlo tal como está arriba
+                                  Ahora vamos al App.module y hacemos la configuración:
+                                    EffectsModule.foroot([MovieEffects])  //esto debemos escribirlo tal cual, viene de la web
+
+                                    Nos falta disparar la acción: Ahora mismo nos da un error grande precisamente por eso, porque no disparamos ninguna acción
+                                    El mergeMap nos conecta la accion que hemos creado con ofType y el obersvable que el recibe mediante ()=>
+                                    
+                          149 Effects de usuario 2
+                                  
+                                  
+                              Acabar de configurar el effects. Veremos que todo viene a traves de efectos,
+
+                          150.Manejo de errores
+
+                           Vamos a manejar los errores en caso de que salga alguno,por ejemplo si ponemos mal la url aparece un error 404
+                           Para manejar los errores, nosotros creamos una accion en usuarios.actions llamada cargarUsuariosError que recibía un payload
+                           (podemos poner el nombre que queramos,es una acción más)
+                           Para manejar el error vamos al effects y añadimos el catcherror bajo del map
+
+                            cathError(err=>usuarios.cargarUsuariosError({payload:err}))
+
+                          Pero necesitamos que devuelva un obersvable, y el catchError no nos da un Obersvable. Debemos convertir todo en un obervable, añadiendo () 
+                          y un of delante --->  catchError(error=>of(usuarios.cargarUsuarios({payload:error})))
+
+                          Ahora vemos en la pestaña REDUX todo el error con sus distintos atributos
+                          Si queremos que no salga todo, sólo tenemos que ir al reducer de usuarios y cambiar el error:payload
+
+                                  error:{
+                                    url:payload.url
+                                    ...
+                                  }
+
+                          Para enviarlos por consola:
+                                  Primero probamos a enviar un delay en la url, si añadimos &delay=3 el programa tardara 3 segundos en iniciarse
+                                  vamos al html(de lista) y añadimos dos variables en nuestro componente, uno llamado loading y otro error.
+                                  Los dos los creamos y los introducimos en el store,alado de la desestructuracion(ya que son propiedades que tiene,junto la de de users)
+                                  Ahora iniciamos las variables creadas y las unimos a loading y error(las propiedades del objeto) con lo que tendremois dos variables
+                                  copia de la información que nos llega
+
+                                  Ahora creamos una alerta en el html:
+                                  <div class="alert alert-info text-center" 
+                                  role="alert"
+                                      *ngIf="loading">    ponemos que se active cuando loading=true
+                                  <h4 class="alert-heading">Cargando...</h4>
+                                  <p>
+                                      <i class="fa fa-sync fa-spin fa-2x"></i>
+                                  </p>
+                                  <p class="mb-0"></p>
+                              </div>
+
+
+                  152.Buscador por usuario:
+                      Vamos a configurar para que al buscar un numero, nos lleve a ese usuario:
+                            en Acciones creamos un archivo para poner las acciones de un usuario
+                            Copiamos todo lo que teníamos en usuarios.actions y lo pegamos en usuario.actions
+                            Quitamos las s de usuarios y vemos que en el cargarUsuario sí que vamos a necesitar un argumento,para poder cargar 
+                            el usuario seleccionado
+                            Hacemos la exportacion desde el index
+                            Toca crear el reducer y unirlo con las acciones de usuario
+
+                  153. Usuario Effect
+
+                   Lo primero es pensar que vamos a necesitar un id.
+                   Nos vamos a la carpeta de usuario.component e inyectamos en el constructor el router:ActivatedRoute
+                   Luego hacemos una suscripcion, pero con param:
+                                  this.router.params.suscribe()
+
+                                Este params se pone cuando necesitams recibir parametros
+
+                  Ahora necesitamos crear algo en el servicio que nos permita traer sólo a un usuario:
+                                getUserById(id:string){
+
+                                  return this.http.get(`${this.url}/user/${id}`)
+                                  .pipe(
+                                    map<any,any>(resp=>resp['data'])
+                                  );
+
+                        Ahora toca hacer el dispatch de la accion:
+                             this.store.dispatch(cargarUsuario({id}))
+
+                  Toca hacer el efecto de la acción:
+                          Copiamos exatamente igual que en usuariosEffects y sólo cambiamos la línea que nos pide el argument de id
+                    Falta comunicarlo en nuestro index.Ya tenemos toda la informacion en el Redux
+                    Al final he conseguido hacerlo cambiando un par de cosas de como lo decía en el curso. He tenido que poner 
+                    usuario:Usuario | undefined; en el usuario.component poniendo usuario.name en el html y en el reducer he tenido que poner
+                        user: any en el UsuarioState e colocar el Usuario en el inicializador:
+                        user:Usuario (en export const initialState: UsuarioState)
+
+
+                
