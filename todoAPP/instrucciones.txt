@@ -1165,3 +1165,8 @@ SECCION 12 DISEÑO DE NUESTRA APLICACION:
 
 
                 
+                  SECCION 14 DESPLEGAR A GITHUB PAGES:
+                                  Ya hemos desplegado con firebase, pero ahora lo haremos con github pages.
+
+                                  Ng build
+                                  Una vez construido,lo pasamos a la carpeta raiz y borramos la carpeta dist.Cambiamos el nombre a docs

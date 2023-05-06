@@ -26,7 +26,7 @@ constructor( private store: Store<AppState> ){}
      // console.log(filtro);
      //.subscribe(filtro=>this.filtroActual=filtro);
 
-     this.store.subscribe( ({filtro, todos}) =>{ //usamos desestructuracion ,asi no te nemos que poner state ni aqui, ni abajo poner state.filtro/state.todos.filtro
+     this.store.subscribe( ({filtro, todos}) =>{ //usamos desestructuracion ,asi no tenemos que poner state ni aqui, ni abajo poner state.filtro/state.todos.filtro
 
       this.filtroActual = filtro;
       this.pendientes = todos.filter(todo=>!todo.completado).length  //que me filtre todos los que no estan completados
